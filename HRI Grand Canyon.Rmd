@@ -1,0 +1,22 @@
+---
+title: "HRI Grand Canyon"
+author: "Dom Grisafe"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    keep_md: FALSE
+    toc: true
+    toc_float: true
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+```{r, echo=FALSE}
+details::details(object = sessioninfo::session_info(), summary = "Current Session Info")
+```
+
+## Analytic Data
