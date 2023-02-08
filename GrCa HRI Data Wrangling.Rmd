@@ -23,9 +23,7 @@ details::details(object = sessioninfo::session_info(), summary = "Current Sessio
 
 # Data Cleaning
 
-I've completed up until the variables `last_name`, `first_name`.
 
-I have variables to finish cleaning up through `working_diagnosis` and before `dispatch_date`.
 
 
 ## Load Data
@@ -65,6 +63,12 @@ names(data_csv) <- data_csv %>%
 
 
 ## Format Existing Variables
+
+Existing variables may be:
+
+* formatted as factors, characters, dates, etc.
+* renamed (see *Remove Irrelevant Variables* for excluding original names)
+* separated into smaller variables from complex variables
 
 ```{r}
 # clean existing variables
@@ -162,9 +166,16 @@ df_format <- data_csv %>%
     ),
     
     # format address variables
+    address_line_1 = str_to_title(address_line_1) %>% str_replace("Po |P.o. ", "PO "),
+    address_line_2 = str_to_title(address_line_2) %>% str_replace("Po |P.o. ", "PO "),
     city = str_to_title(city),
     state = str_to_title(state),
     country = str_to_title(country),
+    
+    # name variables renamed and formatted as titles
+    name_last = str_to_title(last_name),
+    name_first = str_to_title(first_name),
+    name_middle = str_to_title(middle_name)
     
     )
 ```
@@ -186,12 +197,21 @@ df_derived <- df_format %>%
     # add missing country as "United States" if state is in names of USA States
     country = ifelse(state %in% state.name & is.na(country), "United States", country),
     
-    # create composite address variables for both USA and nation without states
-    address = ifelse(
-      country %in% c("United States", "Canada"), 
-      paste(city, state, country, sep = ", "), 
-      paste(city, country, sep = ", ")
-      )  
+    # create composite address variable with street address, city, state (if US or Canada), country
+    address = paste(sep = ", ",
+      # combine first and second street addresses, if the second address exists
+      ifelse(!is.na(address_line_2), paste(sep = ", ", address_line_1, address_line_2), address_line_1),
+      # if address in USA or Canada, then combine city, state, country
+      # else combine city, country
+      ifelse(country %in% c("United States", "Canada"), paste(city, state, country, sep = ", "), paste(city, country, sep = ", "))
+      ),  
+    
+    # create full name variable
+    name_full = ifelse(
+      !is.na(name_middle), 
+      yes = paste(name_last, paste(name_first, name_middle), sep = ", "),
+      no = paste(name_last, name_first, sep = ", ")
+    )
     
   ) %>% 
   
@@ -214,34 +234,27 @@ Remove variables that are irrelevant because they were:
 
 ```{r}
 # remove irrelevant variables
-df_concise <- df_derived %>% 
+df_concise <- df_derived %>% select(
   
   # remove variables used to make cleaner variables above in mutate() function 
-  select(
-    -basesite, -date_dispatched, -day_of_month_of_dispatch, -month_of_dispatch_alltime,
-    -year_of_dispatch, -alcohol_or_drugs, -first_agency_unit_on_scene, -age,
-    -age_in_years_calc
-    ) %>% 
+  -basesite, -date_dispatched, -day_of_month_of_dispatch, -month_of_dispatch_alltime,
+  -year_of_dispatch, -alcohol_or_drugs, -first_agency_unit_on_scene, -age,
+  -age_in_years_calc, -last_name, -first_name, -middle_name,
 
   # remove unimportant variables
-  select(
-    -receiving_other, -receiving_ems, -receiving_hospital, -receiving_hospital_designation,
-    -receiving_hospital_unit, -receiving_md, -receiving_mode_descriptors, 
-    -receiving_mode_descriptors_list, -receiving_rn, -receiving_type, -receiving_usng  
-  ) %>% 
-  
+  -receiving_other, -receiving_ems, -receiving_hospital, -receiving_hospital_designation,
+  -receiving_hospital_unit, -receiving_md, -receiving_mode_descriptors, 
+  -receiving_mode_descriptors_list, -receiving_rn, -receiving_type, -receiving_usng,
+
   # remove variables with all missing data
   # note, this may change as more observations are added to future datasets
   # therefore reassess these variables when adding data
-  select(
-    -impression_primary_nemsis_2, -anatomic_location, -other_agencies,
-    -other_ems_name, -race
-    ) %>% 
-  
+  -impression_primary_nemsis_2, -anatomic_location, -other_agencies,
+  -other_ems_name, -race,
+
   # remove duplicate variables
-  select(
-    -disposition_outcome # outcome_historical_all / outcome_treated
-    
+  -disposition_outcome # outcome_historical_all / outcome_treated
+  
   )
 ```
 
@@ -274,7 +287,14 @@ This is long data that needs to be made wide as `patient_activity_1` and `patien
 
 ## View Final Data
 
+I've completed up until the variable `phone`.
+
+I have variables to finish cleaning up through `working_diagnosis` and before `dispatch_date`.
+
 ```{r}
+# df_grca %>% mutate(
+# 
+# ) %>% select(address, address_line_1, address_line_2, city, state, country) %>% unique
 df_grca %>% glimpse
 ```
 
