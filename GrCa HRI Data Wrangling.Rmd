@@ -20,13 +20,21 @@ library(lubridate)
 details::details(object = sessioninfo::session_info(), summary = "Current Session Info")
 ```
 
+
 # Data Cleaning
 
 I've completed up until the variables `last_name`, `first_name`.
 
 I have variables to finish cleaning up through `working_diagnosis` and before `dispatch_date`.
 
-```{r, echo=FALSE}
+
+## Load Data
+
+Load data from .csv file
+
+Format missing data as NA from various missing label entries (e.g., "Not Available", "Not Known", etc.)
+
+```{r}
 # load data from .csv file
 data_csv <- read_csv(
   paste0(dir_data, "\\20230206_GRCA_2021A.csv"),
@@ -36,16 +44,31 @@ data_csv <- read_csv(
   # replace missing string indicators as NA
   na = c("", "Not Available", "Not Known", "Unknown", "Not Applicable")
   )
+```
 
+
+## Format Variable Names 
+
+Format variable names as snake_case
+
+```{r}
 # clean variable names to snake_case
 names(data_csv) <- data_csv %>% 
   names() %>% 
+  # make alll variable names lower case
   str_to_lower() %>% 
+  # remove punctuation from all variable names
   str_remove_all("[[:punct:]]+") %>% 
+  # make any white space in variable names into a single underscore
   str_replace_all("\\s+","_")
+```
 
-# clean variables
-df_csv <- data_csv %>% 
+
+## Format Existing Variables
+
+```{r}
+# clean existing variables
+df_format <- data_csv %>% 
   
   # clean variables and format
   mutate(
@@ -138,30 +161,60 @@ df_csv <- data_csv %>%
       labels = c("Emergent (Immediate Response)", "Non-Emergent", "No Lights/Sirens")
     ),
     
-    
-    # age at date of dispatch from date of birth
-    age_disp = as.numeric(interval(date_of_birth, dispatch_date),"years"),
-    
     # format address variables
     city = str_to_title(city),
     state = str_to_title(state),
     country = str_to_title(country),
+    
+    )
+```
+
+
+## Derived Variables
+
+Variables that are created for later analysis from existing variables
+
+```{r}
+# derived variables
+df_derived <- df_format %>% 
+  
+  mutate(
+    
+    # age at date of dispatch from date of birth
+    age_disp = as.numeric(interval(date_of_birth, dispatch_date),"years"),
+    
     # add missing country as "United States" if state is in names of USA States
     country = ifelse(state %in% state.name & is.na(country), "United States", country),
+    
     # create composite address variables for both USA and nation without states
     address = ifelse(
       country %in% c("United States", "Canada"), 
       paste(city, state, country, sep = ", "), 
       paste(city, country, sep = ", ")
-      )
+      )  
     
-    ) %>%
+  ) %>% 
   
   # split scene location gps coordinates into separate variables for latitude and longitude
   extract(
     scene_location_gps, c("scene_lat", "scene_long"), 
     "([0-9]+\\.[0-9]+)\\,(\\-[0-9]+\\.[0-9]+)"
-    ) %>% 
+    )
+```
+
+
+## Remove Irrelevant Variables
+
+Remove variables that are irrelevant because they were:
+
+* used in derived variables and are now redundant
+* not relevant to this analysis
+* all values were missin; note, this may change when longer data sets are added
+* duplicate variables that are redundant within dataset
+
+```{r}
+# remove irrelevant variables
+df_concise <- df_derived %>% 
   
   # remove variables used to make cleaner variables above in mutate() function 
   select(
@@ -169,7 +222,7 @@ df_csv <- data_csv %>%
     -year_of_dispatch, -alcohol_or_drugs, -first_agency_unit_on_scene, -age,
     -age_in_years_calc
     ) %>% 
-  
+
   # remove unimportant variables
   select(
     -receiving_other, -receiving_ems, -receiving_hospital, -receiving_hospital_designation,
@@ -188,11 +241,8 @@ df_csv <- data_csv %>%
   # remove duplicate variables
   select(
     -disposition_outcome # outcome_historical_all / outcome_treated
+    
   )
-```
-
-```{r}
-df_csv %>% glimpse
 ```
 
 
@@ -204,21 +254,29 @@ Sometimes duplicate variables exist for the calculated variables. We'll use thes
 
 ```{r}
 # manually enter values for missing data
-df_csv[df_csv$prid=="66267999","age_disp"] <- 58 # taken from var age_in_years_calc
+df_concise[df_concise$prid=="66267999","age_disp"] <- 58 # taken from var age_in_years_calc
 ```
 
 
 ## Duplicate Entries
 
 ```{r}
-df_csv %>% dim()
-df_csv %>% select(-patient_activity) %>% duplicated() %>% sum()
-df_csv %>% select(-patient_activity) %>% distinct %>% dim()
+df_concise %>% dim()
+df_concise %>% select(-patient_activity) %>% duplicated() %>% sum()
+df_concise %>% select(-patient_activity) %>% distinct %>% dim()
+df_grca <- df_concise
 ```
 
 It looks like there are 12 entries that are duplicated except by the variable  `patient_activity`.
 
 This is long data that needs to be made wide as `patient_activity_1` and `patient_activity_2`
+
+
+## View Final Data
+
+```{r}
+df_grca %>% glimpse
+```
 
 
 # Data Dictionary
@@ -228,4 +286,4 @@ This will be the data dictionary.
 
 # Analytic Data
 
-Simple tables for variables in the anaytic dataset
+Simple tables for variables in the analytic dataset
