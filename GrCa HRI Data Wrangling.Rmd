@@ -1,0 +1,231 @@
+---
+title: "HRI Grand Canyon"
+author: "Dom Grisafe"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    keep_md: FALSE
+    toc: true
+    toc_float: true
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+```
+
+```{r, echo=FALSE}
+details::details(object = sessioninfo::session_info(), summary = "Current Session Info")
+```
+
+# Data Cleaning
+
+I've completed up until the variables `last_name`, `first_name`.
+
+I have variables to finish cleaning up through `working_diagnosis` and before `dispatch_date`.
+
+```{r, echo=FALSE}
+# load data from .csv file
+data_csv <- read_csv(
+  paste0(dir_data, "\\20230206_GRCA_2021A.csv"),
+  # quiet warning
+  show_col_types = FALSE,
+  
+  # replace missing string indicators as NA
+  na = c("", "Not Available", "Not Known", "Unknown", "Not Applicable")
+  )
+
+# clean variable names to snake_case
+names(data_csv) <- data_csv %>% 
+  names() %>% 
+  str_to_lower() %>% 
+  str_remove_all("[[:punct:]]+") %>% 
+  str_replace_all("\\s+","_")
+
+# clean variables
+df_csv <- data_csv %>% 
+  
+  # clean variables and format
+  mutate(
+    
+    # convert clean categorical variables from string to factor
+    medical_category = factor(medical_category),
+    patient_activity = factor(patient_activity),
+    gender = factor(gender),
+    service_name = factor(service_name),
+    type_of_service_ihscene = factor(type_of_service_ihscene),
+    
+    # format as dates and time for dates of dispatch and birth
+    dispatch_date = as.POSIXct(date_dispatched, format = "%m/%d/%Y %H:%M"),
+    date_of_birth = as.POSIXct(date_of_birth, format = "%m/%d/%Y %H:%M"),
+    
+    # create dispatch time variables for date, mos, year
+    dispatch_day = lubridate::day(dispatch_date),
+    dispatch_mos = lubridate::month(dispatch_date),
+    dispatch_year = lubridate::year(dispatch_date),
+    
+    # make id variable a character
+    prid = as.character(prid),
+    
+    # format base region within park
+    base_region = case_when(
+      str_detect(basesite, "South Rim") ~ 1,
+      str_detect(basesite, "Phantom Ranch") ~ 2,
+      str_detect(basesite, "Indian Garden") ~ 3,
+      str_detect(basesite, "Meadview") ~ 4
+    ) %>% factor(levels = 1:4, labels = c("South Rim", "Phantom Ranch", "Indian Garden", "Meadview")),
+    
+    # format base type
+    base_type = case_when(
+      str_detect(basesite, "Station 1- South Rim") ~ 1,
+      str_detect(basesite, "South Rim Helibase") ~ 2,
+      str_detect(basesite, "South Rim- Ranger Operations") ~ 3,
+      str_detect(basesite, "Phantom Ranch Ranger Station") ~ 4,
+      str_detect(basesite, "Indian Garden Ranger Station") ~ 4,
+      str_detect(basesite, "Meadview Ranger Station") ~ 4
+      ) %>% factor(levels = 1:4, labels = c("Station 1", "Helibase", "Ranger Operations", "Ranger Station")),
+    
+    # format race/ethnicity
+    race_ethnicity = factor(race, ordered = TRUE,c(
+      "American Indian / Alaska Native", "Asian / Pacific Islander", 
+      "White, Hispanic", "White, Non-Hispanic"
+      )),
+    
+    # format response priority
+    dispatch_priority = factor(dispatch_priority, ordered = TRUE,
+      levels = c("Alpha Response", "Beta Response", "Charlie Response", "Delta Response")
+    ),
+    
+    # format alcohol from alcohol_or_drugs
+    alcohol = case_when(
+      str_detect(alcohol_or_drugs, "Alcohol") ~ 1,
+      str_detect(alcohol_or_drugs, "None") ~ 2
+    ) %>% form_yn(),
+    
+    # format drugs from alcohol_or_drugs
+    drugs = case_when(
+      str_detect(alcohol_or_drugs, "Drugs") ~ 1,
+      str_detect(alcohol_or_drugs, "None") ~ 2
+    ) %>% form_yn(),
+    
+    # format outcome variable as dichotomous treated yes/no
+    outcome_treated = case_when(
+      str_detect(outcome_historical_all, "Treated") ~ 1,
+      !str_detect(outcome_historical_all, "Treated") ~ 2
+    ) %>% form_yn(),
+    
+    # format first agency unit on scene
+    first_on_scene = case_when(
+      first_agency_unit_on_scene == "Yes" ~ 1,
+      first_agency_unit_on_scene == "No" ~ 2,
+      first_agency_unit_on_scene == "Not Applicable" ~ 3
+      ) %>% factor(1:3, c("Yes", "No", "Not Applicable")),
+    
+    # format park unit
+    unit = factor(unit, ordered = TRUE, 
+      labels = c("Helo 8PA", "Helo 368", "Medic 81", "Medic 82", "Medic 84", "Park Ranger")
+      ),
+    
+    # format response mode
+    response_mode = factor(response_mode, ordered = T,
+      labels = c("Emergent (Immediate Response)", "Non-Emergent", "No Lights/Sirens")
+    ),    
+    
+    # format transport mode
+    transport_mode = factor(transport_mode, ordered = T,
+      labels = c("Emergent (Immediate Response)", "Non-Emergent", "No Lights/Sirens")
+    ),
+    
+    
+    # age at date of dispatch from date of birth
+    age_disp = as.numeric(interval(date_of_birth, dispatch_date),"years"),
+    
+    # format address variables
+    city = str_to_title(city),
+    state = str_to_title(state),
+    country = str_to_title(country),
+    # add missing country as "United States" if state is in names of USA States
+    country = ifelse(state %in% state.name & is.na(country), "United States", country),
+    # create composite address variables for both USA and nation without states
+    address = ifelse(
+      country %in% c("United States", "Canada"), 
+      paste(city, state, country, sep = ", "), 
+      paste(city, country, sep = ", ")
+      )
+    
+    ) %>%
+  
+  # split scene location gps coordinates into separate variables for latitude and longitude
+  extract(
+    scene_location_gps, c("scene_lat", "scene_long"), 
+    "([0-9]+\\.[0-9]+)\\,(\\-[0-9]+\\.[0-9]+)"
+    ) %>% 
+  
+  # remove variables used to make cleaner variables above in mutate() function 
+  select(
+    -basesite, -date_dispatched, -day_of_month_of_dispatch, -month_of_dispatch_alltime,
+    -year_of_dispatch, -alcohol_or_drugs, -first_agency_unit_on_scene, -age,
+    -age_in_years_calc
+    ) %>% 
+  
+  # remove unimportant variables
+  select(
+    -receiving_other, -receiving_ems, -receiving_hospital, -receiving_hospital_designation,
+    -receiving_hospital_unit, -receiving_md, -receiving_mode_descriptors, 
+    -receiving_mode_descriptors_list, -receiving_rn, -receiving_type, -receiving_usng  
+  ) %>% 
+  
+  # remove variables with all missing data
+  # note, this may change as more observations are added to future datasets
+  # therefore reassess these variables when adding data
+  select(
+    -impression_primary_nemsis_2, -anatomic_location, -other_agencies,
+    -other_ems_name, -race
+    ) %>% 
+  
+  # remove duplicate variables
+  select(
+    -disposition_outcome # outcome_historical_all / outcome_treated
+  )
+```
+
+```{r}
+df_csv %>% glimpse
+```
+
+
+## Manual Entries
+
+Some calculated variables are missing because one of the input variables is missing.
+
+Sometimes duplicate variables exist for the calculated variables. We'll use these here to substitute for the missing values.
+
+```{r}
+# manually enter values for missing data
+df_csv[df_csv$prid=="66267999","age_disp"] <- 58 # taken from var age_in_years_calc
+```
+
+
+## Duplicate Entries
+
+```{r}
+df_csv %>% dim()
+df_csv %>% select(-patient_activity) %>% duplicated() %>% sum()
+df_csv %>% select(-patient_activity) %>% distinct %>% dim()
+```
+
+It looks like there are 12 entries that are duplicated except by the variable  `patient_activity`.
+
+This is long data that needs to be made wide as `patient_activity_1` and `patient_activity_2`
+
+
+# Data Dictionary
+
+This will be the data dictionary.
+
+
+# Analytic Data
+
+Simple tables for variables in the anaytic dataset
