@@ -51,8 +51,7 @@ Format variable names as snake_case
 
 ```{r}
 # clean variable names to snake_case
-names(data_csv) <- data_csv %>% 
-  names() %>% 
+names(data_csv) <- data_csv %>% names() %>% 
   # make alll variable names lower case
   str_to_lower() %>% 
   # remove punctuation from all variable names
@@ -175,9 +174,21 @@ df_format <- data_csv %>%
     # name variables renamed and formatted as titles
     name_last = str_to_title(last_name),
     name_first = str_to_title(first_name),
-    name_middle = str_to_title(middle_name)
+    name_middle = str_to_title(middle_name),
     
+    # phone in consistent format
+    phone <- regex(comments = TRUE, 
+      "
+      \\(?     # optional opening parens
+      (\\d{3}) # area code
+      [) -]?   # optional closing parens, space, or dash
+      (\\d{3}) # another three numbers
+      [ -]?    # optional space or dash
+      (\\d{3}) # three more numbers
+      "
     )
+    
+  )
 ```
 
 
@@ -295,6 +306,7 @@ I have variables to finish cleaning up through `working_diagnosis` and before `d
 # df_grca %>% mutate(
 # 
 # ) %>% select(address, address_line_1, address_line_2, city, state, country) %>% unique
+df_grca$phone
 df_grca %>% glimpse
 ```
 
