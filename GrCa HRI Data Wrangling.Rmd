@@ -40,7 +40,7 @@ data_csv <- read_csv(
   show_col_types = FALSE,
   
   # replace missing string indicators as NA
-  na = c("", "Not Available", "Not Known", "Unknown", "Not Applicable")
+  na = c("", "Not Available", "Not Known", "Unknown", "Not Applicable", "unknown")
   )
 ```
 
@@ -82,6 +82,7 @@ df_format <- data_csv %>%
     gender = factor(gender),
     service_name = factor(service_name),
     type_of_service_ihscene = factor(type_of_service_ihscene),
+    medical_category_historical = factor(medical_category_historical),
     
     # format as dates and time for dates of dispatch and birth
     dispatch_date = as.POSIXct(date_dispatched, format = "%m/%d/%Y %H:%M"),
@@ -189,7 +190,28 @@ df_format <- data_csv %>%
           (\\d{4}) # four more numbers
         "
       )
-    )
+    ),
+    
+    # allergies to medications
+    allergies = 
+      # set common indicator variable for no known allergies
+      ifelse(
+        test = str_detect(allergies, pattern = regex('^none|denied|denies|nkda|nka', ignore_case = T)),
+        yes = "No Known Allergies", 
+        no = ifelse(
+          # set NA for unknown whether have allergies
+          test = str_detect(allergies, pattern = regex('^unknown', ignore_case = T)),
+          yes = NA, 
+          no = allergies
+          )
+        ) %>% 
+      # add spaces after commas separating drug names
+      # https://stackoverflow.com/questions/44155594/add-a-space-after-commas-in-a-string-only-if-it-doesnt-exist-in-r
+      str_replace_all(pattern = ",([[:alpha:]])", replacement = ", \\1") %>% 
+      # replace and with comma, consistent with formatting
+      str_replace_all(pattern = " and ", replacement = ", ") %>% 
+      # Capitalize Each Word
+      str_to_title()
   )
 ```
 
@@ -252,18 +274,19 @@ df_concise <- df_derived %>% select(
   # remove variables used to make cleaner variables above in mutate() function 
   -basesite, -date_dispatched, -day_of_month_of_dispatch, -month_of_dispatch_alltime,
   -year_of_dispatch, -alcohol_or_drugs, -first_agency_unit_on_scene, -age,
-  -age_in_years_calc, -last_name, -first_name, -middle_name,
+  -age_in_years_calc, -last_name, -first_name, -middle_name, -race,
 
   # remove unimportant variables
   -receiving_other, -receiving_ems, -receiving_hospital, -receiving_hospital_designation,
   -receiving_hospital_unit, -receiving_md, -receiving_mode_descriptors, 
   -receiving_mode_descriptors_list, -receiving_rn, -receiving_type, -receiving_usng,
+  -anatomic_location,
 
   # remove variables with all missing data
   # note, this may change as more observations are added to future datasets
   # therefore reassess these variables when adding data
-  -impression_primary_nemsis_2, -anatomic_location, -other_agencies,
-  -other_ems_name, -race,
+  -impression_primary_nemsis_2, -other_agencies,
+  -other_ems_name, -impression_list,
 
   # remove duplicate variables
   -disposition_outcome # outcome_historical_all / outcome_treated
@@ -271,6 +294,20 @@ df_concise <- df_derived %>% select(
   )
 ```
 
+## Rename Variables by Categorizing into Groups
+
+Some variables naturally group together.
+
+I'll add prefixes to each group of variables:
+
+* Identification (ide_)
+* Demographic (dem_)
+* Subjective (sub_)
+* Emergency Medical Services (ems_)
+
+```{r}
+
+```
 
 ## Manual Entries
 
@@ -297,7 +334,6 @@ It looks like there are 12 entries that are duplicated except by the variable  `
 
 This is long data that needs to be made wide as `patient_activity_1` and `patient_activity_2`
 
-
 ## View Final Data
 
 I've completed up until the variable `phone`.
@@ -308,7 +344,10 @@ I have variables to finish cleaning up through `working_diagnosis` and before `d
 # df_grca %>% mutate(
 # 
 # ) %>% select(address, address_line_1, address_line_2, city, state, country) %>% unique
-df_grca$phone %>% head
+test <- tibble(
+  df_grca$allergies,
+  data_csv$allergies
+)
 df_grca %>% glimpse
 ```
 
