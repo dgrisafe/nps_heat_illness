@@ -177,6 +177,7 @@ df_format <- data_csv %>%
     name_middle = str_to_title(middle_name),
     
     # phone in consistent format
+    # from [R4DS](https://r4ds.had.co.nz/strings.html?q=phone#other-types-of-pattern)
     phone <- regex(comments = TRUE, 
       "
       \\(?     # optional opening parens
