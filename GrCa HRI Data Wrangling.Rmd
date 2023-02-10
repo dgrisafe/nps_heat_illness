@@ -178,17 +178,18 @@ df_format <- data_csv %>%
     
     # phone in consistent format
     # from [R4DS](https://r4ds.had.co.nz/strings.html?q=phone#other-types-of-pattern)
-    phone <- regex(comments = TRUE, 
-      "
-      \\(?     # optional opening parens
-      (\\d{3}) # area code
-      [) -]?   # optional closing parens, space, or dash
-      (\\d{3}) # another three numbers
-      [ -]?    # optional space or dash
-      (\\d{3}) # three more numbers
-      "
+    phone = str_extract(phone, 
+      pattern = regex(ignore_case = TRUE, comments = TRUE,
+        "
+          \\(?     # optional opening parens
+          (\\d{3}) # area code
+          [) -]?   # optional closing parens, space, or dash
+          (\\d{3}) # another three numbers
+          [ -]?    # optional space or dash
+          (\\d{4}) # four more numbers
+        "
+      )
     )
-    
   )
 ```
 
@@ -307,7 +308,7 @@ I have variables to finish cleaning up through `working_diagnosis` and before `d
 # df_grca %>% mutate(
 # 
 # ) %>% select(address, address_line_1, address_line_2, city, state, country) %>% unique
-df_grca$phone
+df_grca$phone %>% head
 df_grca %>% glimpse
 ```
 
