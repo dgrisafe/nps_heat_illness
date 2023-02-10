@@ -192,6 +192,29 @@ df_format <- data_csv %>%
       )
     ),
     
+    # medications patients taking
+    medications = 
+      # set common indicator variable for no medications
+      ifelse(
+        test = str_detect(medications, pattern = regex('^none|denied|denies', ignore_case = T)),
+        yes = "None", 
+        no = ifelse(
+          # set NA for unknown whether taking medications
+          test = str_detect(medications, pattern = regex('^unknown', ignore_case = T)),
+          yes = NA, 
+          no = medications
+          )
+        ) %>% 
+      # replace unk prefix with complete word unknown
+      str_replace_all(regex("^unk", ignore_case = TRUE), "unknown") %>% 
+      # add spaces after commas separating drug names
+      # https://stackoverflow.com/questions/44155594/add-a-space-after-commas-in-a-string-only-if-it-doesnt-exist-in-r
+      str_replace_all(pattern = ",([[:alpha:]])", replacement = ", \\1") %>% 
+      # replace and with comma, consistent with formatting
+      str_replace_all(pattern = " and ", replacement = ", ") %>% 
+      # Capitalize Each Word
+      str_to_title(),
+    
     # allergies to medications
     allergies = 
       # set common indicator variable for no known allergies
@@ -286,7 +309,8 @@ df_concise <- df_derived %>% select(
   # note, this may change as more observations are added to future datasets
   # therefore reassess these variables when adding data
   -impression_primary_nemsis_2, -other_agencies,
-  -other_ems_name, -impression_list,
+  -other_ems_name, -impression_list, 
+  -primary_diagnosis, -impression, -secondary_complaint, -working_diagnosis,
 
   # remove duplicate variables
   -disposition_outcome # outcome_historical_all / outcome_treated
@@ -341,14 +365,21 @@ I've completed up until the variable `phone`.
 I have variables to finish cleaning up through `working_diagnosis` and before `dispatch_date`.
 
 ```{r}
+df_grca2 <- df_grca %>% mutate(
+
+)
+```
+
+```{r}
 # df_grca %>% mutate(
 # 
 # ) %>% select(address, address_line_1, address_line_2, city, state, country) %>% unique
-test <- tibble(
-  df_grca$allergies,
-  data_csv$allergies
-)
-df_grca %>% glimpse
+# test <- tibble(
+#   df_grca2$medications,
+#   data_csv$medications
+# )
+# df_grca %>% unique()
+# df_grca %>% glimpse
 ```
 
 
