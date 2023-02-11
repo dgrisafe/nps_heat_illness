@@ -318,19 +318,35 @@ df_concise <- df_derived %>% select(
   )
 ```
 
-## Rename Variables by Categorizing into Groups
+## Rename and Order Variables as Groups
 
 Some variables naturally group together.
 
-I'll add prefixes to each group of variables:
+Add prefixes to each group of variables:
 
-* Identification (ide_)
+* Identification (id_)
 * Demographic (dem_)
-* Subjective (sub_)
+* Medical (med_)
 * Emergency Medical Services (ems_)
 
 ```{r}
+# identification variables
+var_id <- c("dispatch_id", "prid")
 
+# demographic variables
+var_demographic <- c("name_full", "name_last", "name_first", "name_middle", "age_disp", "gender", "date_of_birth", "race_ethnicity", "phone", "address", "address_line_1", "address_line_2", "city", "state", "country")
+
+# medical variables
+var_medical <- c("height", "weight", "medical_category_historical", "past_medical_history", "medications", "allergies")
+
+# emergency medical service variables
+var_ems <- c("dispatch_date", "dispatch_day", "dispatch_mos", "dispatch_year", "service_name", "unit", "type_of_service_ihscene", "dispatch_priority", "response_mode", "transport_mode", "scene_lat", "scene_long", "reason_for_encounter", "medical_category", "chief_complaint", "drug_and_alcohol_indicators", "outcome_historical_all", "patient_activity", "hpi", "scene_description", "base_region", "base_type", "alcohol", "drugs", "outcome_treated", "first_on_scene")
+
+# combined vector of all variable names
+var_all <- c(var_id, var_demographic, var_medical, var_ems)
+
+# order variables
+df_concise <- df_concise %>% select(!!!var_all)
 ```
 
 ## Manual Entries
@@ -368,18 +384,7 @@ I have variables to finish cleaning up through `working_diagnosis` and before `d
 df_grca2 <- df_grca %>% mutate(
 
 )
-```
-
-```{r}
-# df_grca %>% mutate(
-# 
-# ) %>% select(address, address_line_1, address_line_2, city, state, country) %>% unique
-# test <- tibble(
-#   df_grca2$medications,
-#   data_csv$medications
-# )
-# df_grca %>% unique()
-# df_grca %>% glimpse
+df_grca %>% glimpse
 ```
 
 
