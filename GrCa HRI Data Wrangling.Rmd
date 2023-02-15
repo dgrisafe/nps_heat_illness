@@ -280,6 +280,14 @@ df_derived <- df_format %>%
     )
 ```
 
+## Outcome Variable
+
+Define the outcome variable according to Noe 2013
+
+```{r}
+
+```
+
 
 ## Remove Irrelevant Variables
 
@@ -393,6 +401,8 @@ df_grca %>% glimpse
 This will be the data dictionary.
 
 
-# Analytic Data
+# Save Analytic Dataset
 
-Simple tables for variables in the analytic dataset
+```{r}
+saveRDS(df_grca, paste0(dir_data, "\\df_grca.rds"))
+```
