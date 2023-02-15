@@ -14,3 +14,10 @@ rmarkdown::render(
   output_format = "html_document",
   output_dir = dir_reports
   )
+
+# exploratory data analysis
+rmarkdown::render(
+  input = paste0(dir_programs, "\\GrCa HRI Exploratory Data Analysis.Rmd"),
+  output_format = "html_document",
+  output_dir = dir_reports
+)
