@@ -280,15 +280,6 @@ df_derived <- df_format %>%
     )
 ```
 
-## Outcome Variable
-
-Define the outcome variable according to Noe 2013
-
-```{r}
-
-```
-
-
 ## Remove Irrelevant Variables
 
 Remove variables that are irrelevant because they were:
@@ -393,6 +384,48 @@ df_grca2 <- df_grca %>% mutate(
 
 )
 df_grca %>% glimpse
+```
+
+
+# Outcome: HRI Case Definition
+
+Define Heat Related Illness (HRI) case definition according to Noe 2013. 
+
+1 hour outdoor heat exposure, with one of the following:
+
+* HRI assessment or diagnosis
+* HRI self-report
+* Signs or symptoms of HRI without other etiology (e.g., URI, MVA)
+
+## Screening HPI for Cases
+
+Query the HPI variable for keywords, not case sensitive:
+
+* Hot
+* Heat
+* Exhaust
+* Dehydrat
+* Hyponatrem
+
+```{r}
+case_screen <- df_grca %>% mutate(
+  case_screen = ifelse(
+    medical_category_historical == "Heat/Cold Exposure (2828)" 
+    | str_detect(pattern = "(?i)hot|(?i)heat|(?i)exhaust|(?i)dehydrat|(?i)Hyponatrem", hpi),
+    yes = 1, no = 0
+    ) %>% form_yn()
+)
+```
+
+## Confirming HPI is consistent with HRI case definition
+
+Medical professionals reviewed each case in the screening group to confirm whether case meets diagnosis criteria of HRI.
+
+```{r}
+case_confirm <- case_screen %>% 
+  filter(case_screen == "Yes") %>% 
+  select(prid, dispatch_date, medical_category, patient_activity, hpi)
+case_confirm %>% glimpse
 ```
 
 
