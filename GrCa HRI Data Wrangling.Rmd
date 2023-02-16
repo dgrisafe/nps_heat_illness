@@ -339,7 +339,7 @@ var_demographic <- c("name_full", "name_last", "name_first", "name_middle", "age
 var_medical <- c("height", "weight", "medical_category_historical", "past_medical_history", "medications", "allergies")
 
 # emergency medical service variables
-var_ems <- c("dispatch_date", "dispatch_day", "dispatch_mos", "dispatch_year", "service_name", "unit", "type_of_service_ihscene", "dispatch_priority", "response_mode", "transport_mode", "scene_lat", "scene_long", "reason_for_encounter", "medical_category", "chief_complaint", "drug_and_alcohol_indicators", "outcome_historical_all", "patient_activity", "hpi", "scene_description", "base_region", "base_type", "alcohol", "drugs", "outcome_treated", "first_on_scene")
+var_ems <- c("dispatch_date", "dispatch_day", "dispatch_mos", "dispatch_year", "service_name", "unit", "type_of_service_ihscene", "dispatch_priority", "response_mode", "transport_mode", "scene_lat", "scene_long", "reason_for_encounter", "medical_category", "chief_complaint", "drug_and_alcohol_indicators", "outcome_historical_all", "hpi", "scene_description", "base_region", "base_type", "alcohol", "drugs", "outcome_treated", "first_on_scene", "patient_activity")
 
 # combined vector of all variable names
 var_all <- c(var_id, var_demographic, var_medical, var_ems)
@@ -363,27 +363,43 @@ df_concise[df_concise$prid=="66267999","age_disp"] <- 58 # taken from var age_in
 ## Duplicate Entries
 
 ```{r}
+# size/dimensions of entire dataset
 df_concise %>% dim()
-df_concise %>% select(-patient_activity) %>% duplicated() %>% sum()
-df_concise %>% select(-patient_activity) %>% distinct %>% dim()
-df_grca <- df_concise
+
+# patient_activity appears to be the only variable that is unique to every row; other columns repeat and are not unique for all observations/rows
+df_concise %>% select(prid, starts_with("patient_activity")) %>% head()
+
+# identify all duplicate rows, assuming only patient_activity is unique
+duplicate_rows <- df_concise %>% select(-patient_activity) %>% duplicated() 
+
+# identify patient identifiers of all duplicated observations
+test_id <- df_concise[duplicate_rows,]$prid
 ```
 
-It looks like there are 12 entries that are duplicated except by the variable  `patient_activity`.
+`r sum(duplicate_rows)` duplicate rows/observations after excluding the variable `patient_activity`.
 
-This is long data that needs to be made wide as `patient_activity_1` and `patient_activity_2`
+This long data that must be spread as `patient_activity_1`, `patient_activity_2`, etc.
 
-## View Final Data
-
-I've completed up until the variable `phone`.
-
-I have variables to finish cleaning up through `working_diagnosis` and before `dispatch_date`.
+Create unique rows per patient by [grouping, creating a unique ID variable, ungrouping, spreading](https://stackoverflow.com/questions/50117777/multiple-rows-into-multiple-columns-dataframe-in-r)
 
 ```{r}
-df_grca2 <- df_grca %>% mutate(
+# spread repeating patient_activity data into multiple columns so each row is one unique person
+# relearned from https://stackoverflow.com/questions/50117777/multiple-rows-into-multiple-columns-dataframe-in-r
+df_unique <- df_concise %>% 
+  # select all variables except for the unique variable
+  group_by_at(vars(-patient_activity)) %>% 
+  # create ID variable that is unique for each patient activity
+  mutate(ID = paste0("patient_activity_", 1:n())) %>% 
+  ungroup() %>% 
+  # spread unique patient activities into separate columns
+  spread(ID, patient_activity)
+```
 
-)
-df_grca %>% glimpse
+
+## View Clean Data
+
+```{r}
+df_grca <- df_unique %>% glimpse
 ```
 
 
@@ -424,7 +440,7 @@ Medical professionals reviewed each case in the screening group to confirm wheth
 ```{r}
 case_confirm <- case_screen %>% 
   filter(case_screen == "Yes") %>% 
-  select(prid, dispatch_date, medical_category, patient_activity, hpi)
+  select(prid, dispatch_date, medical_category, starts_with("patient_activity"), hpi)
 case_confirm %>% glimpse
 ```
 
