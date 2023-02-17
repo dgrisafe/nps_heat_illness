@@ -12,14 +12,80 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tableone) # summary table
+library(kableExtra) # html tables
 ```
 
-## Load Analytic Dataset
+# Load Analytic Dataset
 
 ```{r}
-df_grca <- readRDS(paste0(dir_data, "\\df_grca.rds"))
+df_screen <- readRDS(paste0(dir_data, "\\df_screen.rds"))
 ```
 
-## Summary Tables
+# Table 1
 
 Simple tables for variables in the analytic dataset
+
+## Overall
+
+```{r}
+tableone::CreateTableOne(
+  data = df_screen, 
+  includeNA = FALSE,
+  vars = c(
+    "age_disp", "gender", "race_ethnicity", "country", "state", # var_demographic
+    "height", "weight", # var_medical
+    "dispatch_mos", "dispatch_year" # var_ems
+    )
+  ) %>% 
+  kableone() %>% 
+  kable_styling(bootstrap_options = c("striped", "hover")) %>% 
+  pack_rows("Demographics", 2, 8) %>% 
+  pack_rows("Nation of Origin", 9, 12) %>% 
+  pack_rows("State of USA", 13, 47) %>% 
+  pack_rows("Clinical Information", 48, 49) %>% 
+  pack_rows("Dispatch Day", 50, 51)
+```
+
+## Overall, Missing
+
+```{r}
+tableone::CreateTableOne(
+  data = df_screen, 
+  includeNA = TRUE,
+  vars = c(
+    "age_disp", "gender", "race_ethnicity", "country", "state", # var_demographic
+    "height", "weight", # var_medical
+    "dispatch_mos", "dispatch_year" # var_ems
+    )
+  ) %>% 
+  kableone() %>% 
+  kable_styling(bootstrap_options = c("striped", "hover")) %>% 
+  pack_rows("Demographics", 2, 12) %>% 
+  pack_rows("Nation of Origin", 13, 17) %>% 
+  pack_rows("State of USA", 18, 53) %>% 
+  pack_rows("Clinical Information", 54, 55) %>%
+  pack_rows("Dispatch Day", 56, 57)
+```
+
+## By Case Status
+
+```{r}
+tableone::CreateTableOne(
+  data = df_screen, 
+  strata = "case_screen", includeNA = TRUE,
+  vars = c(
+    "age_disp", "gender", "race_ethnicity", "country", "state", # var_demographic
+    "height", "weight", # var_medical
+    "dispatch_mos", "dispatch_year" # var_ems
+    )
+  ) %>% 
+  kableone() %>% 
+  kable_styling(bootstrap_options = c("striped", "hover")) %>% 
+  pack_rows("Demographics", 2, 12) %>% 
+  pack_rows("Nation of Origin", 13, 17) %>% 
+  pack_rows("State of USA", 18, 53) %>% 
+  pack_rows("Clinical Information", 54, 55) %>%
+  pack_rows("Dispatch Day", 56, 57)
+```
+
