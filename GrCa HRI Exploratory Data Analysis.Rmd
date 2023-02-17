@@ -21,8 +21,14 @@ library(kableExtra) # html tables
 ```{r}
 df_screen <- readRDS(paste0(dir_data, "\\df_screen.rds"))
 ```
+# Map 1: Case Origins
 
-# Table 1
+## Country
+
+## State
+
+
+# Table 1: Cohort Description
 
 Simple tables for variables in the analytic dataset
 
@@ -89,3 +95,16 @@ tableone::CreateTableOne(
   pack_rows("Dispatch Day", 56, 57)
 ```
 
+# Map 2: Grand Canyon Case Location
+
+# Table 2: Medicial Conditions, Medications
+
+# Table 3: Activity Engaged
+
+# Table 4: Paramedic Assessments
+
+# Figure 1: Temperature and Rate per 100,000 on Month
+
+Where do we get the temperature data?
+
+Should we try a three dimensional plot where the z-axis is the year? This would consolidate many graphs, but may be too confusing to interpret.
