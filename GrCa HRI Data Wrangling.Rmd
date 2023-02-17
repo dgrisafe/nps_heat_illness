@@ -272,12 +272,14 @@ df_derived <- df_format %>%
     )
     
   ) %>% 
-  
+
   # split scene location gps coordinates into separate variables for latitude and longitude
   extract(
     scene_location_gps, c("scene_lat", "scene_long"), 
     "([0-9]+\\.[0-9]+)\\,(\\-[0-9]+\\.[0-9]+)"
-    )
+    ) %>% 
+  # latitude and longitude as numeric variables
+  mutate(across(starts_with("scene_l"), as.double)) %>% glimpse
 ```
 
 ## Remove Irrelevant Variables

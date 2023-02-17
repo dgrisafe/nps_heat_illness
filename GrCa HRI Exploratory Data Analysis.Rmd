@@ -14,6 +14,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 library(tableone) # summary table
 library(kableExtra) # html tables
+library(mapview) # mapping
 ```
 
 # Load Analytic Dataset
@@ -96,6 +97,19 @@ tableone::CreateTableOne(
 ```
 
 # Map 2: Grand Canyon Case Location
+
+```{r}
+df_grca_map <- df_screen %>% filter(!is.na(scene_lat) & !is.na(scene_long))
+map_grca_2_scene <- mapview(df_grca_map, xcol = "scene_long", ycol = "scene_lat", crs = 4269, grid = FALSE)
+# mapshot(map_grca_2_scene, file = paste0(dir_reports,"map_grca_2_scene.png"), remove_controls = NULL)
+```
+
+`r nrow(df_grca_map)` (`r round(100 * nrow(df_grca_map) / nrow(df_screen), digits = 2)`%) cases have latitude and longitude data available
+
+```{r}
+map_grca_2_scene
+```
+
 
 # Table 2: Medicial Conditions, Medications
 
