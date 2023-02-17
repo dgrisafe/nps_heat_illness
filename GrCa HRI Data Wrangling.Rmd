@@ -317,36 +317,6 @@ df_concise <- df_derived %>% select(
   )
 ```
 
-## Rename and Order Variables as Groups
-
-Some variables naturally group together.
-
-Add prefixes to each group of variables:
-
-* Identification (id_)
-* Demographic (dem_)
-* Medical (med_)
-* Emergency Medical Services (ems_)
-
-```{r}
-# identification variables
-var_id <- c("dispatch_id", "prid")
-
-# demographic variables
-var_demographic <- c("name_full", "name_last", "name_first", "name_middle", "age_disp", "gender", "date_of_birth", "race_ethnicity", "phone", "address", "address_line_1", "address_line_2", "city", "state", "country")
-
-# medical variables
-var_medical <- c("height", "weight", "medical_category_historical", "past_medical_history", "medications", "allergies")
-
-# emergency medical service variables
-var_ems <- c("dispatch_date", "dispatch_day", "dispatch_mos", "dispatch_year", "service_name", "unit", "type_of_service_ihscene", "dispatch_priority", "response_mode", "transport_mode", "scene_lat", "scene_long", "reason_for_encounter", "medical_category", "chief_complaint", "drug_and_alcohol_indicators", "outcome_historical_all", "hpi", "scene_description", "base_region", "base_type", "alcohol", "drugs", "outcome_treated", "first_on_scene", "patient_activity")
-
-# combined vector of all variable names
-var_all <- c(var_id, var_demographic, var_medical, var_ems)
-
-# order variables
-df_concise <- df_concise %>% select(!!!var_all)
-```
 
 ## Manual Entries
 
@@ -395,11 +365,45 @@ df_unique <- df_concise %>%
   spread(ID, patient_activity)
 ```
 
+## Rename and Order Variables as Groups
+
+Some variables naturally group together.
+
+Add prefixes to each group of variables:
+
+* Identification (id_)
+* Demographic (dem_)
+* Medical (med_)
+* Emergency Medical Services (ems_)
+
+```{r}
+# identification variables
+var_id <- c(
+  "dispatch_id", "prid",
+  "name_full", "name_last", "name_first", "name_middle",
+  "phone", "address", "address_line_1", "address_line_2"
+  )
+
+# demographic variables
+var_demographic <- c("age_disp", "gender", "date_of_birth", "race_ethnicity", "city", "state", "country")
+
+# medical variables
+var_medical <- c("height", "weight", "medical_category_historical", "past_medical_history", "medications", "allergies")
+
+# emergency medical service variables
+var_ems <- c("dispatch_date", "dispatch_day", "dispatch_mos", "dispatch_year", "service_name", "unit", "type_of_service_ihscene", "dispatch_priority", "response_mode", "transport_mode", "scene_lat", "scene_long", "reason_for_encounter", "medical_category", "chief_complaint", "drug_and_alcohol_indicators", "outcome_historical_all", "hpi", "scene_description", "base_region", "base_type", "alcohol", "drugs", "outcome_treated", "first_on_scene", "patient_activity_1", "patient_activity_2", "patient_activity_3")
+
+# combined vector of all variable names
+var_all <- c(var_id, var_demographic, var_medical, var_ems)
+
+# order variables
+df_ordered <- df_unique %>% select(!!!var_all)
+```
 
 ## View Clean Data
 
 ```{r}
-df_grca <- df_unique %>% glimpse
+df_grca <- df_ordered %>% glimpse
 ```
 
 
@@ -424,21 +428,23 @@ Query the HPI variable for keywords, not case sensitive:
 * Hyponatrem
 
 ```{r}
-case_screen <- df_grca %>% mutate(
+df_screen <- df_grca %>% mutate(
   case_screen = ifelse(
     medical_category_historical == "Heat/Cold Exposure (2828)" 
     | str_detect(pattern = "(?i)hot|(?i)heat|(?i)exhaust|(?i)dehydrat|(?i)Hyponatrem", hpi),
-    yes = 1, no = 0
+    yes = 1, no = 2
     ) %>% form_yn()
 )
 ```
+
+Note, if any of the conditional variables (medical_category_historical, hpi) are missing, then case_screen is missing.
 
 ## Confirming HPI is consistent with HRI case definition
 
 Medical professionals reviewed each case in the screening group to confirm whether case meets diagnosis criteria of HRI.
 
 ```{r}
-case_confirm <- case_screen %>% 
+case_confirm <- df_screen %>% 
   filter(case_screen == "Yes") %>% 
   select(prid, dispatch_date, medical_category, starts_with("patient_activity"), hpi)
 case_confirm %>% glimpse
@@ -453,5 +459,5 @@ This will be the data dictionary.
 # Save Analytic Dataset
 
 ```{r}
-saveRDS(df_grca, paste0(dir_data, "\\df_grca.rds"))
+saveRDS(df_screen, paste0(dir_data, "\\df_screen.rds"))
 ```
