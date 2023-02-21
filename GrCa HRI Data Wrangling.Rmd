@@ -353,6 +353,9 @@ df_derived <- df_format %>%
     # add missing country as "United States" if state is in names of USA States
     country = ifelse(state %in% state.name & is.na(country), "United States", country),
     
+    # create continent variable using package countrycode
+    continent = countrycode::countrycode(sourcevar=country, origin="country.name", destination="continent"),
+    
     # create composite address variable with street address, city, state (if US or Canada), country
     address = paste(sep = ", ",
       # combine first and second street addresses, if the second address exists
@@ -485,7 +488,7 @@ var_id <- c(
   )
 
 # demographic variables
-var_demographic <- c("age_disp", "gender", "date_of_birth", "race_ethnicity", "city", "state", "country")
+var_demographic <- c("age_disp", "gender", "date_of_birth", "race_ethnicity", "city", "state", "country", "continent")
 
 # medical variables
 var_medical <- c("height", "weight", "medical_category_historical", "past_medical_history", "medications", "allergies")
