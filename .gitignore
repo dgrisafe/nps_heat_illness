@@ -5,4 +5,5 @@
 .DS_Store
 *.Rproj
 *.html
+*_cache/
 directories_home.R
