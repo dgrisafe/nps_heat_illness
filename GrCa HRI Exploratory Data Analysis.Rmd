@@ -12,6 +12,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
 library(tableone) # summary table
 library(kableExtra) # html tables
 library(mapview) # mapping
@@ -40,18 +41,18 @@ tableone::CreateTableOne(
   data = df_screen, 
   includeNA = FALSE,
   vars = c(
-    "age_disp", "gender", "race_ethnicity", "country", "state", # var_demographic
+    "age_disp", "gender", "race_ethnicity", "continent", "state", # var_demographic
     "height", "weight", # var_medical
     "dispatch_mos", "dispatch_year" # var_ems
     )
   ) %>% 
   kableone() %>% 
   kable_styling(bootstrap_options = c("striped", "hover")) %>% 
-  pack_rows("Demographics", 2, 8) %>% 
-  pack_rows("Nation of Origin", 9, 12) %>% 
-  pack_rows("State of USA", 13, 47) %>% 
-  pack_rows("Clinical Information", 48, 49) %>% 
-  pack_rows("Dispatch Day", 50, 51)
+  pack_rows("Demographics", 2, 11) %>% 
+  pack_rows("Continent of Origin", 12, 17) %>% 
+  pack_rows("State/Providence", 18, 82) %>% 
+  pack_rows("Clinical Information", 83, 84) %>% 
+  pack_rows("Dispatch Day", 85, 86)
 ```
 
 ## Overall, Missing
@@ -61,18 +62,18 @@ tableone::CreateTableOne(
   data = df_screen, 
   includeNA = TRUE,
   vars = c(
-    "age_disp", "gender", "race_ethnicity", "country", "state", # var_demographic
+    "age_disp", "gender", "race_ethnicity", "continent", "state", # var_demographic
     "height", "weight", # var_medical
     "dispatch_mos", "dispatch_year" # var_ems
     )
   ) %>% 
   kableone() %>% 
   kable_styling(bootstrap_options = c("striped", "hover")) %>% 
-  pack_rows("Demographics", 2, 12) %>% 
-  pack_rows("Nation of Origin", 13, 17) %>% 
-  pack_rows("State of USA", 18, 53) %>% 
-  pack_rows("Clinical Information", 54, 55) %>%
-  pack_rows("Dispatch Day", 56, 57)
+  pack_rows("Demographics", 2, 13) %>% 
+  pack_rows("Continent of Origin", 14, 20) %>% 
+  pack_rows("State/Providence", 21, 86) %>% 
+  pack_rows("Clinical Information", 87, 88) %>% 
+  pack_rows("Dispatch Day", 89, 90)
 ```
 
 ## By Case Status
@@ -82,33 +83,53 @@ tableone::CreateTableOne(
   data = df_screen, 
   strata = "case_screen", includeNA = TRUE,
   vars = c(
-    "age_disp", "gender", "race_ethnicity", "country", "state", # var_demographic
+    "age_disp", "gender", "race_ethnicity", "continent", "state", # var_demographic
     "height", "weight", # var_medical
     "dispatch_mos", "dispatch_year" # var_ems
     )
   ) %>% 
   kableone() %>% 
   kable_styling(bootstrap_options = c("striped", "hover")) %>% 
-  pack_rows("Demographics", 2, 12) %>% 
-  pack_rows("Nation of Origin", 13, 17) %>% 
-  pack_rows("State of USA", 18, 53) %>% 
-  pack_rows("Clinical Information", 54, 55) %>%
-  pack_rows("Dispatch Day", 56, 57)
+  pack_rows("Demographics", 2, 13) %>% 
+  pack_rows("Continent of Origin", 14, 20) %>% 
+  pack_rows("State/Providence", 21, 86) %>% 
+  pack_rows("Clinical Information", 87, 88) %>% 
+  pack_rows("Dispatch Day", 89, 90)
 ```
 
 # Map 2: Grand Canyon Case Location
 
 ```{r}
-df_grca_map <- df_screen %>% filter(!is.na(scene_lat) & !is.na(scene_long))
-map_grca_2_scene <- mapview(df_grca_map, xcol = "scene_long", ycol = "scene_lat", crs = 4269, grid = FALSE)
-# mapshot(map_grca_2_scene, file = paste0(dir_reports,"map_grca_2_scene.png"), remove_controls = NULL)
-```
+# create data with coordinates of bases for mapping
+base_coord <- tibble(
+  base_region = df_screen$base_region %>% levels,
+  base_lat  = c(36.056198, 36.1058432, 36.0884229, 36.0029983),
+  base_long = c(-112.125198, -112.0968523, -112.1382771, -114.0663743)
+)
 
-`r nrow(df_grca_map)` (`r round(100 * nrow(df_grca_map) / nrow(df_screen), digits = 2)`%) cases have latitude and longitude data available
+# add base location data to data
+df_grca_map <- merge(base_coord, df_screen, by = "base_region")
+```
 
 ```{r}
-map_grca_2_scene
+df_map <- df_grca_map %>% 
+  filter(!is.na(scene_lat) & !is.na(scene_long) & !is.na(base_region)) %>% 
+  select(scene_lat, scene_long, base_region)
+
+mapviewOptions(basemaps = "OpenTopoMap")
+map_base <- mapview(df_map, xcol = "scene_long", ycol = "scene_lat", zcol = "base_region")
+  
+  # na.color = "gray",
+  # label = "base_region",
+  # # cex = "number.of.types"
+  # zcol = "base_region",
+  # map.types = mapviewGetOption("basemaps")
+
+map_base
 ```
+
+
+`r nrow(df_grca_map)` (`r round(100 * nrow(df_grca_map) / nrow(df_screen), digits = 2)`%) cases have latitude and longitude data available
 
 
 # Table 2: Medicial Conditions, Medications
