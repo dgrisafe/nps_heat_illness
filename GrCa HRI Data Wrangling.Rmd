@@ -28,20 +28,127 @@ details::details(object = sessioninfo::session_info(), summary = "Current Sessio
 
 ## Load Data
 
-Load data from .csv file
+Load data from .xlsx files
+
+```{r}
+# names of xlsx files in data folder
+data_file_names <- c(
+  "GRCA_2009.1-4.xlsx",
+  "GRCA_2009.5-8.xlsx",
+  "GRCA_2009.9-12.xlsx",
+  "GRCA_2010.1-6.xlsx",
+  "GRCA_2010.7-12.xlsx",
+  "GRCA_2011.1-6.xlsx",
+  "GRCA_2011.7-12.xlsx",
+  "GRCA_2012.1-6.xlsx",
+  "GRCA_2012.7-12.xlsx",
+  "GRCA_2013.1-6.xlsx",
+  "GRCA_2013.7-12.xlsx",
+  "GRCA_2014.1-4.xlsx",
+  "GRCA_2014.5-8.xlsx",
+  "GRCA_2014.9-12.xlsx",
+  "GRCA_2015.1-4.xlsx", 
+  "GRCA_2015.5-8.xlsx",
+  "GRCA_2015.9-12.xlsx",
+  "GRCA_2016.1-4.xlsx",
+  "GRCA_2016.5-8.xlsx",
+  "GRCA_2016.9-12.xlsx",
+  "GRCA_2017.1-6.xlsx",
+  "GRCA_2017.7-12.xlsx",
+  "GRCA_2018.1-2.xlsx",
+  "GRCA_2018.3-4.xlsx",
+  "GRCA_2018.5-6.xlsx",
+  "GRCA_2018.7-8.xlsx",
+  "GRCA_2019.1-4.xlsx",
+  "GRCA_2019.5-8.xlsx",
+  "GRCA_2019.9-12.xlsx",
+  "GRCA_2020.1-4.xlsx",
+  "GRCA_2020.5-8.xlsx",
+  "GRCA_2020.9-12.xlsx",
+  "GRCA_2021.5-6.xlsx",
+  "GRCA_2021.7-8.xlsx",
+  "GRCA_2021.9-12.xlsx",
+  "GRCA_2021A.xlsx",
+  "GRCA_2022.1-4.xlsx",
+  "GRCA_2022.5-6.xlsx",
+  "GRCA_2022.7-8.xlsx",
+  "GRCA_2022.9-12.xlsx"
+)
+```
+
+Vector of variable classes and column variable names
+
+```{r}
+# list of class type for each column variable
+col_class <- c(
+      'character', 'character', 'numeric', 'character', 'numeric', 'numeric', 'numeric', 'character',   
+      'character', 'character', 'character', 'character', 'character', 'character', 
+      'character', 'character', 'character', 'logical', 'logical', 'character', 'character', 'character',
+      'numeric', 'numeric', 'character', 'character', 'character', 'character', 'character', 'character',
+      'character', 'character', 'character', 'character', 'character', 'character', 'character', 
+      'character', 'logical', 'character', 'logical', 'logical', 'logical', 'logical', 'character', 
+      'logical', 'character', 'character', 'character', 'character', 'character', 'character', 
+      'character', 'numeric', 'numeric', 'logical', 'character', 'character', 'character', 'character', 
+      'logical', 'logical', 'character', 'logical'
+      )
+
+# assign column names for each assigned class
+names(col_class) <- c(
+      'Date Dispatched', 'Dispatch ID', 'PRID', 'Basesite', 'Day of Month of Dispatch', 
+      'Month of Dispatch (All-Time)', 'Year of Dispatch', 'Scene Location GPS', 'Reason For Encounter', 
+      'Medical Category', 'Anatomic Location', 'Alcohol or Drugs', 
+      'Chief Complaint', 'Drug and Alcohol Indicators', 'Outcome - Historical (All)', 'Patient Activity',
+      'First Agency Unit On Scene', 'Other Agencies', 'Other EMS Name', 'HPI', 'Scene Description', 
+      'Race', 'Age', 'Age In Years (Calc)', 'Gender', 'City', 'State', 'Country', 'Service Name', 'Unit',
+      'Type of Service (IH/Scene)', 'Dispatch Priority', 'Response Mode', 'Disposition (Outcome)', 
+      'Transport Mode', 'Receiving - Other', 'Receiving EMS', 'Receiving Hospital', 
+      'Receiving Hospital Designation', 'Receiving Hospital Unit', 'Receiving MD', 
+      'Receiving Mode Descriptors', 'Receiving Mode Descriptors (list)', 'Receiving RN', 
+      'Receiving Type', 'Receiving USNG', 'Last Name', 'First Name', 'Middle Name', 'Address Line 1', 
+      'Address Line 2', 'Phone', 'Date of Birth', 'Weight', 'Height', 'Impression (list)', 
+      'Medical Category - Historical', 'Past Medical History', 'Medications', 'Allergies', 
+      'Primary Diagnosis', 'Impression', 'Secondary Complaint', 'Working Diagnosis'
+      )
+```
 
 Format missing data as NA from various missing label entries (e.g., "Not Available", "Not Known", etc.)
 
-```{r}
-# load data from .csv file
-data_csv <- read_csv(
-  paste0(dir_data, "\\20230206_GRCA_2021A.csv"),
-  # quiet warning
-  show_col_types = FALSE,
+```{r, cache=TRUE}
+# function to load data from .xlsx files
+get_xlsx_data <- function(x){
   
-  # replace missing string indicators as NA
-  na = c("", "Not Available", "Not Known", "Unknown", "Not Applicable", "unknown")
-  )
+  # load raw data
+  raw_data <- readxl::read_xlsx(
+    
+    # combine file location and name
+    paste0(dir_data_sharepoint, "\\", x),
+    
+    # get column names from first row
+    col_names = TRUE,
+    
+    # replace missing string indicators as NA
+    na = c("", "Not Available", "Not Known", "Unknown", "Not Applicable", "unknown")
+   
+    )
+  
+  # assign order for each column variable
+  raw_data <- raw_data[, names(col_class)]
+  
+  # assign class for each column name
+  raw_data %>%
+    mutate(
+      across(names(col_class[col_class=="character"]), as.character),
+      across(names(col_class[col_class=="numeric"]), as.numeric),
+      across(names(col_class[col_class=="logical"]), as.logical)
+    )
+  
+}
+
+# create list of tibbles, one per each file
+lt_data_xlsx <- lapply(X = data_file_names, FUN = get_xlsx_data)
+
+# create single data frame with consistent names and classes
+data_xlsx <- bind_rows(lt_data_xlsx[1:length(lt_data_xlsx)])
 ```
 
 
@@ -51,7 +158,7 @@ Format variable names as snake_case
 
 ```{r}
 # clean variable names to snake_case
-names(data_csv) <- data_csv %>% names() %>% 
+names(data_xlsx) <- data_xlsx %>% names() %>% 
   # make alll variable names lower case
   str_to_lower() %>% 
   # remove punctuation from all variable names
@@ -71,7 +178,7 @@ Existing variables may be:
 
 ```{r}
 # clean existing variables
-df_format <- data_csv %>% 
+df_format <- data_xlsx %>% 
   
   # clean variables and format
   mutate(
@@ -84,6 +191,12 @@ df_format <- data_csv %>%
     type_of_service_ihscene = factor(type_of_service_ihscene),
     medical_category_historical = factor(medical_category_historical),
     
+    # convert suspected irrelevant categorical variables from string to factor
+    # I don't want to clean these variables now bc I don't think they're relevant...may change
+    unit = factor(unit),
+    response_mode = factor(response_mode),
+    transport_mode = factor(transport_mode),
+                             
     # format as dates and time for dates of dispatch and birth
     dispatch_date = as.POSIXct(date_dispatched, format = "%m/%d/%Y %H:%M"),
     date_of_birth = as.POSIXct(date_of_birth, format = "%m/%d/%Y %H:%M"),
@@ -95,7 +208,7 @@ df_format <- data_csv %>%
     
     # make id variable a character
     prid = as.character(prid),
-    
+
     # format base region within park
     base_region = case_when(
       str_detect(basesite, "South Rim") ~ 1,
@@ -103,7 +216,7 @@ df_format <- data_csv %>%
       str_detect(basesite, "Indian Garden") ~ 3,
       str_detect(basesite, "Meadview") ~ 4
     ) %>% factor(levels = 1:4, labels = c("South Rim", "Phantom Ranch", "Indian Garden", "Meadview")),
-    
+
     # format base type
     base_type = case_when(
       str_detect(basesite, "Station 1- South Rim") ~ 1,
@@ -113,73 +226,58 @@ df_format <- data_csv %>%
       str_detect(basesite, "Indian Garden Ranger Station") ~ 4,
       str_detect(basesite, "Meadview Ranger Station") ~ 4
       ) %>% factor(levels = 1:4, labels = c("Station 1", "Helibase", "Ranger Operations", "Ranger Station")),
-    
+
     # format race/ethnicity
-    race_ethnicity = factor(race, ordered = TRUE,c(
-      "American Indian / Alaska Native", "Asian / Pacific Islander", 
+    race_ethnicity = factor(race, ordered = TRUE, c(
+      "American Indian / Alaska Native", "Asian / Pacific Islander",
       "White, Hispanic", "White, Non-Hispanic"
       )),
-    
+
     # format response priority
     dispatch_priority = factor(dispatch_priority, ordered = TRUE,
       levels = c("Alpha Response", "Beta Response", "Charlie Response", "Delta Response")
     ),
-    
+
     # format alcohol from alcohol_or_drugs
     alcohol = case_when(
       str_detect(alcohol_or_drugs, "Alcohol") ~ 1,
       str_detect(alcohol_or_drugs, "None") ~ 2
     ) %>% form_yn(),
-    
+
     # format drugs from alcohol_or_drugs
     drugs = case_when(
       str_detect(alcohol_or_drugs, "Drugs") ~ 1,
       str_detect(alcohol_or_drugs, "None") ~ 2
     ) %>% form_yn(),
-    
+
     # format outcome variable as dichotomous treated yes/no
     outcome_treated = case_when(
       str_detect(outcome_historical_all, "Treated") ~ 1,
       !str_detect(outcome_historical_all, "Treated") ~ 2
     ) %>% form_yn(),
-    
+
     # format first agency unit on scene
     first_on_scene = case_when(
       first_agency_unit_on_scene == "Yes" ~ 1,
       first_agency_unit_on_scene == "No" ~ 2,
       first_agency_unit_on_scene == "Not Applicable" ~ 3
       ) %>% factor(1:3, c("Yes", "No", "Not Applicable")),
-    
-    # format park unit
-    unit = factor(unit, ordered = TRUE, 
-      labels = c("Helo 8PA", "Helo 368", "Medic 81", "Medic 82", "Medic 84", "Park Ranger")
-      ),
-    
-    # format response mode
-    response_mode = factor(response_mode, ordered = T,
-      labels = c("Emergent (Immediate Response)", "Non-Emergent", "No Lights/Sirens")
-    ),    
-    
-    # format transport mode
-    transport_mode = factor(transport_mode, ordered = T,
-      labels = c("Emergent (Immediate Response)", "Non-Emergent", "No Lights/Sirens")
-    ),
-    
+
     # format address variables
     address_line_1 = str_to_title(address_line_1) %>% str_replace("Po |P.o. ", "PO "),
     address_line_2 = str_to_title(address_line_2) %>% str_replace("Po |P.o. ", "PO "),
     city = str_to_title(city),
     state = str_to_title(state),
     country = str_to_title(country),
-    
+
     # name variables renamed and formatted as titles
     name_last = str_to_title(last_name),
     name_first = str_to_title(first_name),
     name_middle = str_to_title(middle_name),
-    
+
     # phone in consistent format
     # from [R4DS](https://r4ds.had.co.nz/strings.html?q=phone#other-types-of-pattern)
-    phone = str_extract(phone, 
+    phone = str_extract(phone,
       pattern = regex(ignore_case = TRUE, comments = TRUE,
         "
           \\(?     # optional opening parens
@@ -191,48 +289,48 @@ df_format <- data_csv %>%
         "
       )
     ),
-    
+
     # medications patients taking
-    medications = 
+    medications =
       # set common indicator variable for no medications
       ifelse(
         test = str_detect(medications, pattern = regex('^none|denied|denies', ignore_case = T)),
-        yes = "None", 
+        yes = "None",
         no = ifelse(
           # set NA for unknown whether taking medications
           test = str_detect(medications, pattern = regex('^unknown', ignore_case = T)),
-          yes = NA, 
+          yes = NA,
           no = medications
           )
-        ) %>% 
+        ) %>%
       # replace unk prefix with complete word unknown
-      str_replace_all(regex("^unk", ignore_case = TRUE), "unknown") %>% 
+      str_replace_all(regex("^unk", ignore_case = TRUE), "unknown") %>%
       # add spaces after commas separating drug names
       # https://stackoverflow.com/questions/44155594/add-a-space-after-commas-in-a-string-only-if-it-doesnt-exist-in-r
-      str_replace_all(pattern = ",([[:alpha:]])", replacement = ", \\1") %>% 
+      str_replace_all(pattern = ",([[:alpha:]])", replacement = ", \\1") %>%
       # replace and with comma, consistent with formatting
-      str_replace_all(pattern = " and ", replacement = ", ") %>% 
+      str_replace_all(pattern = " and ", replacement = ", ") %>%
       # Capitalize Each Word
       str_to_title(),
-    
+
     # allergies to medications
-    allergies = 
+    allergies =
       # set common indicator variable for no known allergies
       ifelse(
         test = str_detect(allergies, pattern = regex('^none|denied|denies|nkda|nka', ignore_case = T)),
-        yes = "No Known Allergies", 
+        yes = "No Known Allergies",
         no = ifelse(
           # set NA for unknown whether have allergies
           test = str_detect(allergies, pattern = regex('^unknown', ignore_case = T)),
-          yes = NA, 
+          yes = NA,
           no = allergies
           )
-        ) %>% 
+        ) %>%
       # add spaces after commas separating drug names
       # https://stackoverflow.com/questions/44155594/add-a-space-after-commas-in-a-string-only-if-it-doesnt-exist-in-r
-      str_replace_all(pattern = ",([[:alpha:]])", replacement = ", \\1") %>% 
+      str_replace_all(pattern = ",([[:alpha:]])", replacement = ", \\1") %>%
       # replace and with comma, consistent with formatting
-      str_replace_all(pattern = " and ", replacement = ", ") %>% 
+      str_replace_all(pattern = " and ", replacement = ", ") %>%
       # Capitalize Each Word
       str_to_title()
   )
@@ -279,7 +377,7 @@ df_derived <- df_format %>%
     "([0-9]+\\.[0-9]+)\\,(\\-[0-9]+\\.[0-9]+)"
     ) %>% 
   # latitude and longitude as numeric variables
-  mutate(across(starts_with("scene_l"), as.double)) %>% glimpse
+  mutate(across(starts_with("scene_l"), as.double))
 ```
 
 ## Remove Irrelevant Variables
@@ -309,7 +407,7 @@ df_concise <- df_derived %>% select(
   # remove variables with all missing data
   # note, this may change as more observations are added to future datasets
   # therefore reassess these variables when adding data
-  -impression_primary_nemsis_2, -other_agencies,
+  -other_agencies,
   -other_ems_name, -impression_list, 
   -primary_diagnosis, -impression, -secondary_complaint, -working_diagnosis,
 
