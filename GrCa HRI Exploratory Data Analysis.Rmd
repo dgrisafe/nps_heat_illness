@@ -133,7 +133,7 @@ df_map %>%
 
 ```{r}
 # color palette for grouping variable, base region
-factpal <- colorFactor(palette = c("#bf9bd9", "#50a9a7", "#8b6464", "#d8dc2b"), df_map$base_region)
+factpal <- colorFactor(palette = c("#bf9bd9", "#50a9a7", "#8b6464", "#e11404"), df_map$base_region)
 
 # map of regions
 leaflet() %>% 
