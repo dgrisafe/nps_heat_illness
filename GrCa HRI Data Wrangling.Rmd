@@ -199,7 +199,7 @@ df_format <- data_xlsx %>%
                              
     # format as dates and time for dates of dispatch and birth
     dispatch_date = as.POSIXct(date_dispatched, format = "%Y-%m-%d %H:%M:%S"), # "%m/%d/%Y %H:%M"),
-    date_of_birth = as.POSIXct(date_of_birth, format = "%Y-%m-%d %H:%M:%S"),
+    date_of_birth = as.POSIXct(date_of_birth, format = "%Y-%m-%d"),
     
     # create dispatch time variables for date, mos, year
     dispatch_day = lubridate::day(dispatch_date),
