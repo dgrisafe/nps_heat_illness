@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(tableone) # summary table
 library(kableExtra) # html tables
-library(mapview) # mapping
+library(leaflet) # mapping
 ```
 
 # Load Analytic Dataset
@@ -97,6 +97,7 @@ tableone::CreateTableOne(
   pack_rows("Dispatch Day", 89, 90)
 ```
 
+
 # Map 2: Grand Canyon Case Location
 
 ```{r}
@@ -113,23 +114,51 @@ df_grca_map <- merge(base_coord, df_screen, by = "base_region")
 
 ```{r}
 df_map <- df_grca_map %>% 
-  filter(!is.na(scene_lat) & !is.na(scene_long) & !is.na(base_region)) %>% 
-  select(scene_lat, scene_long, base_region)
+  # filter(
+  #   base_region != "South Rim"
+  #   !is.na(scene_lat) & scene_lat > 35.9 & scene_lat < 36.25 &
+  #   !is.na(scene_long) & scene_long > -113 & scene_long < -111 &
+  #   !is.na(base_region)
+  #   ) %>%
+  select(prid, scene_lat, scene_long, 
+         base_region, base_lat, base_long
+         ) 
 
-mapviewOptions(basemaps = "OpenTopoMap")
-map_base <- mapview(df_map, xcol = "scene_long", ycol = "scene_lat", zcol = "base_region")
-  
-  # na.color = "gray",
-  # label = "base_region",
-  # # cex = "number.of.types"
-  # zcol = "base_region",
-  # map.types = mapviewGetOption("basemaps")
-
-map_base
+df_map %>% 
+  ggplot(aes(x = scene_lat)) + 
+  geom_histogram(binwidth = 0.01)
 ```
 
-
 `r nrow(df_grca_map)` (`r round(100 * nrow(df_grca_map) / nrow(df_screen), digits = 2)`%) cases have latitude and longitude data available
+
+```{r}
+# color palette for grouping variable, base region
+factpal <- colorFactor(palette = c("#bf9bd9", "#50a9a7", "#8b6464", "#d8dc2b"), df_map$base_region)
+
+# map of regions
+leaflet() %>% 
+  addProviderTiles(providers$OpenTopoMap, group = "Topo") %>% 
+  setView(lng = -113.079, lat = 36.0, zoom = 8) %>% 
+  
+  # larger circles for base sites
+  addCircleMarkers(data = base_coord, lng=~base_long, lat=~base_lat,
+                   fillColor = ~factpal(base_region),
+                   radius = 40, label = ~base_region, fillOpacity = 0.5, 
+                   stroke = TRUE, color = "black", weight = 1
+                   ) %>% 
+  
+  # smaller circles for cases
+  addCircleMarkers(data = df_map, lng=~scene_long, lat=~scene_lat,
+                   fillColor = ~factpal(base_region), popup = ~prid,
+                   radius = 5, label = ~base_region, fillOpacity = 10,
+                   stroke = TRUE, color = "white", weight = 1
+                   ) %>% 
+  
+  # legend settings
+  addLegend('bottomright', pal = factpal, values = df_map$base_region,
+            title = 'Base Region', opacity = 5
+            )
+```
 
 
 # Table 2: Medicial Conditions, Medications
