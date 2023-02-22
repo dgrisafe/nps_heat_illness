@@ -16,6 +16,7 @@ library(tidyverse)
 library(tableone) # summary table
 library(kableExtra) # html tables
 library(leaflet) # mapping
+library(lubridate)
 ```
 
 # Load Analytic Dataset
@@ -24,7 +25,7 @@ library(leaflet) # mapping
 df_screen <- readRDS(paste0(dir_data, "\\df_screen.rds"))
 ```
 
-# Case Timelines
+# Case Timelines{.tabset}
 
 ```{r}
 df_screen$dispatch_date %>% range(na.rm = TRUE)
@@ -45,7 +46,7 @@ date_lims <- as.POSIXct(strptime(c("2009-01-01", "2023-01-01"), format = "%Y-%m-
 # plot over the entire study period
 df_screen %>% 
   ggplot(aes(x = dispatch_date, fill = lubridate::month(dispatch_date, label = TRUE))) +
-  geom_histogram(bins = 13, na.rm = F) +
+  geom_histogram(bins = 13, na.rm = T) +
   scale_x_datetime(
     labels = scales::date_format("'%y"), 
     date_breaks = "1 year",
@@ -56,11 +57,98 @@ df_screen %>%
   )
 ```
 
+## Overall Study Period by Year
+
+```{r}
+# limit the overall study period
+date_lims <- as.POSIXct(strptime(c("2009-01-01", "2023-01-01"), format = "%Y-%m-%d"))    
+
+# plot over the entire study period
+df_screen %>% 
+  ggplot(aes(x = dispatch_date, fill = lubridate::month(dispatch_date, label = TRUE))) +
+  geom_histogram(bins = 12, na.rm = T) +
+  scale_x_datetime(
+    labels = scales::date_format("%m"), 
+    date_breaks = "2 months"
+    ) +
+  facet_wrap(~dispatch_year, scales ='free_x') +
+  theme(
+    legend.title = element_blank(),
+    legend.position = "bottom",
+  ) +
+  guides(
+    fill = guide_legend(label.position = "right", nrow = 1), 
+    )
+```
+
 ## Annual Trends
 
 ```{r}
-
+df_screen %>% 
+  ggplot(aes(yday(dispatch_date), group=factor(year(dispatch_date)), fill=factor(year(dispatch_date)))) + 
+  geom_histogram(bins = 12, na.rm = T) +
+  theme(
+    legend.title = element_blank(),
+    legend.position = "right",
+  ) +
+  guides(
+    fill = guide_legend(label.position = "right", ncol = 1),
+    )
 ```
+
+## Monthly Trends
+
+```{r}
+df_monthly <- df_screen %>% 
+  group_by(dispatch_year, dispatch_mos) %>% 
+  summarise(count = n()) %>% 
+  mutate(dispatch_year_f = factor(dispatch_year)) %>% 
+  ungroup()
+
+df_monthly %>% 
+  ggplot(aes(x = dispatch_mos, y = count, linetype = dispatch_year_f, color = dispatch_year_f, scale = 1/10000)) +
+    geom_line(na.rm=T) +
+  scale_x_continuous(breaks = seq(1,12,1)) +
+  ylim(0,175) +
+  theme(
+    legend.title = element_blank(),
+    legend.position = "right",
+  ) +
+  guides(
+    fill = guide_legend(label.position = "right", ncol = 1),
+    )
+```
+
+## 3D Trends
+
+```{r}
+library(rgl)
+
+# This is to output a rgl plot in a rmarkdown document.
+setupKnitr()
+
+# Add a new column with color
+my_col_pal <- scales::col_factor(levels = unique(df_monthly$dispatch_mos), "viridis")
+df_monthly$color <- my_col_pal(df_monthly$dispatch_mos)
+
+plot3d(x = df_monthly$dispatch_mos, y = df_monthly$count, z = df_monthly$dispatch_year,
+  col = df_monthly$color,
+  type = 'l', lwd=4,
+  ylim = c(0, 200),
+  xlab="Month", ylab="n Cases", zlab="Year"
+  )
+
+# To display in an R Markdown document:
+rglwidget()
+
+# # To save to a file:
+# htmlwidgets::saveWidget(rglwidget(width = 520, height = 520),
+#                         file = "HtmlWidget-3dscatter.html",
+#                         libdir = "libs",
+#                         selfcontained = FALSE
+#                         )
+```
+
 
 # Map 1: Case Origins
 
