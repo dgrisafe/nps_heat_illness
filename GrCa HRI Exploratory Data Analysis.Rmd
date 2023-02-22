@@ -23,6 +23,45 @@ library(leaflet) # mapping
 ```{r}
 df_screen <- readRDS(paste0(dir_data, "\\df_screen.rds"))
 ```
+
+# Case Timelines
+
+```{r}
+df_screen$dispatch_date %>% range(na.rm = TRUE)
+table(lubridate::month(df_screen$dispatch_date, label = TRUE), df_screen$dispatch_year)
+```
+Missing data from:
+
+* 2016 May to Aug
+* 2017 July to Dec
+* 2018 Sept to Dec
+
+## Overall Study Period
+
+```{r}
+# limit the overall study period
+date_lims <- as.POSIXct(strptime(c("2009-01-01", "2023-01-01"), format = "%Y-%m-%d"))    
+
+# plot over the entire study period
+df_screen %>% 
+  ggplot(aes(x = dispatch_date, fill = lubridate::month(dispatch_date, label = TRUE))) +
+  geom_histogram(bins = 13, na.rm = F) +
+  scale_x_datetime(
+    labels = scales::date_format("'%y"), 
+    date_breaks = "1 year",
+    limits = date_lims
+    ) +
+  theme(
+    legend.title = element_blank()
+  )
+```
+
+## Annual Trends
+
+```{r}
+
+```
+
 # Map 1: Case Origins
 
 ## Country
@@ -30,7 +69,7 @@ df_screen <- readRDS(paste0(dir_data, "\\df_screen.rds"))
 ## State
 
 
-# Table 1: Cohort Description
+# Table 1: Cohort Description{.tabset}
 
 Simple tables for variables in the analytic dataset
 
@@ -113,6 +152,7 @@ df_grca_map <- merge(base_coord, df_screen, by = "base_region")
 ```
 
 ```{r}
+# subset relevant variables for mapping
 df_map <- df_grca_map %>% 
   # filter(
   #   base_region != "South Rim"
@@ -123,10 +163,6 @@ df_map <- df_grca_map %>%
   select(prid, scene_lat, scene_long, 
          base_region, base_lat, base_long
          ) 
-
-df_map %>% 
-  ggplot(aes(x = scene_lat)) + 
-  geom_histogram(binwidth = 0.01)
 ```
 
 `r nrow(df_grca_map)` (`r round(100 * nrow(df_grca_map) / nrow(df_screen), digits = 2)`%) cases have latitude and longitude data available
