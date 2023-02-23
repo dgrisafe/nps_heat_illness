@@ -11,13 +11,24 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE) # hide code from html output
 library(tidyverse)
 library(tableone) # summary table
 library(kableExtra) # html tables
 library(leaflet) # mapping
 library(lubridate)
+library(rgl) # 3D plotting
 ```
+
+# To-Do List
+
+* [ ] Set unrealistic latitude and longitude case data as missing, visualize with GrCa case map
+* [ ] Get missing data from Maria in SharePoint
+    * 2016 May to Aug
+    * 2017 July to Dec
+    * 2018 Sept to Dec
+* [ ] Add temperature data using [getGridMet](https://rdrr.io/github/mikejohnson51/climateR/man/getGridMET.html) 
+* [ ] Get park visitor denominator data from Danielle, who's colleague works next to her
 
 # Load Analytic Dataset
 
@@ -27,10 +38,12 @@ df_screen <- readRDS(paste0(dir_data, "\\df_screen.rds"))
 
 # Case Timelines{.tabset}
 
+Check data to ensure no missing from various time periods.
+
 ```{r}
-df_screen$dispatch_date %>% range(na.rm = TRUE)
-table(lubridate::month(df_screen$dispatch_date, label = TRUE), df_screen$dispatch_year)
+table(df_screen$dispatch_year, lubridate::month(df_screen$dispatch_date, label = TRUE))
 ```
+
 Missing data from:
 
 * 2016 May to Aug
@@ -121,25 +134,59 @@ df_monthly %>%
 
 ## 3D Trends
 
-```{r}
-library(rgl)
+3D plotting using the [`rgl`](https://cran.r-project.org/web/packages/rgl/vignettes/rgl.html) library package.
 
-# This is to output a rgl plot in a rmarkdown document.
+```{r}
+# clear existing 3d html window
+clear3d()
+
+# output rgl plot in a rmarkdown document
 setupKnitr()
 
-# Add a new column with color
-my_col_pal <- scales::col_factor(levels = unique(df_monthly$dispatch_mos), "viridis")
-df_monthly$color <- my_col_pal(df_monthly$dispatch_mos)
+# saved coordinates from view I like
+myview <- matrix(nrow = 4, ncol = 4, byrow = TRUE,
+                 data = c(0.8436018, 0.5357571, -0.03606263,  0,
+                          -0.3189417, 0.5539688, 0.76902199,  0,
+                           0.4319866, -0.6372465, 0.63820428,  0,
+                           0,          0,          0,           1
+                          )
+                 )
 
-plot3d(x = df_monthly$dispatch_mos, y = df_monthly$count, z = df_monthly$dispatch_year,
-  col = df_monthly$color,
-  type = 'l', lwd=4,
-  ylim = c(0, 200),
-  xlab="Month", ylab="n Cases", zlab="Year"
-  )
+# # open 3d window
+# open3d()
+
+# Add a new column with color
+my_col_pal <- scales::col_numeric(domain = c(0, 168), palette = "Spectral", reverse = TRUE)
+df_monthly$color <- my_col_pal(df_monthly$count)
+
+
+## triangulate a surface (https://stackoverflow.com/questions/53398108/how-to-plot-a-surface-in-rgl-plot3d)
+# remove missing row prevents error
+df_monthly <- df_monthly %>% filter(!is.na(dispatch_mos) & !is.na(dispatch_year)) 
+# triangulate data
+dxyz <- deldir::deldir(x = df_monthly$dispatch_year, y = df_monthly$dispatch_mos, z = df_monthly$count)
+# 3D plot in rgl
+persp3d(dxyz, col = df_monthly$color, 
+        xlim=c(2009,2022), ylim = c(0,12), zlim = c(0, 170),
+        aspect = c(4,2,1),# zoom on z axis
+        xlab="Year", ylab="Month", zlab="Cases"
+        )
+
+
+# # save orientation of 3d object (https://cran.r-project.org/web/packages/rgl/vignettes/rgl.html#controlling-the-look-of-the-scene)
+# myview2 <- par3d("userMatrix")
+
+# call coordinates
+par3d(userMatrix = myview)
+
+# Add bounding box decoration
+bbox3d(color = c("#ffffff", "black"), alpha = 0.2)
 
 # To display in an R Markdown document:
 rglwidget()
+
+# # close 3d window
+# close3d()
 
 # # To save to a file:
 # htmlwidgets::saveWidget(rglwidget(width = 520, height = 520),
