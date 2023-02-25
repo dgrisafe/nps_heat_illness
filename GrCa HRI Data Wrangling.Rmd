@@ -127,7 +127,7 @@ get_xlsx_data <- function(x){
     col_names = TRUE,
     
     # replace missing string indicators as NA
-    na = c("", "Not Available", "Not Known", "Unknown", "Not Applicable", "unknown")
+    na = c("", "Not Available", "Not Known", "Unknown", "Not Applicable", "unknown", "Not Recorded", "Not recorded", "not recorded")
    
     )
   
@@ -310,8 +310,8 @@ df_format <- data_xlsx %>%
       str_replace_all(pattern = ",([[:alpha:]])", replacement = ", \\1") %>%
       # replace and with comma, consistent with formatting
       str_replace_all(pattern = " and ", replacement = ", ") %>%
-      # Capitalize Each Word
-      str_to_title(),
+      # replace common medical abbreviations with full names
+      form_med_abb(),
 
     # allergies to medications
     allergies =
@@ -330,9 +330,10 @@ df_format <- data_xlsx %>%
       # https://stackoverflow.com/questions/44155594/add-a-space-after-commas-in-a-string-only-if-it-doesnt-exist-in-r
       str_replace_all(pattern = ",([[:alpha:]])", replacement = ", \\1") %>%
       # replace and with comma, consistent with formatting
-      str_replace_all(pattern = " and ", replacement = ", ") %>%
-      # Capitalize Each Word
-      str_to_title()
+      str_replace_all(pattern = " and ", replacement = ", ") %>%      
+      # replace common medical abbreviations with full names
+      form_med_abb(),
+
   )
 ```
 
