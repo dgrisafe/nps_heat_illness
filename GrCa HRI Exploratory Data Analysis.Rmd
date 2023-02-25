@@ -334,6 +334,38 @@ leaflet() %>%
 
 # Table 2: Medicial Conditions, Medications
 
+```{r}
+# get the number of medications any given person is taking, create new column
+df_screen$n_meds <- df_screen$medications %>% str_split(pattern = ", ") %>% lapply(length) %>% unlist
+n_max_meds <- df_screen$n_meds %>% max
+
+# create dataframe of medications in long format, multiple rows per person if taking multiple medications
+df_meds_long <- df_screen %>% 
+  # separate medications delimited by a comma and single white space
+  tidyr::separate(col = medications, sep = ", ", into = paste0("medication_", 1:n_max_meds), remove = FALSE, fill = "right") %>% 
+  # show only patient id and medications
+  dplyr::select(prid, starts_with("medication")) %>% 
+  # pivot from wide to long data, name new columns, drop places when patient not taking multiple medications
+  pivot_longer(cols = starts_with("medication_"), names_to = "n_med", values_to = "medication", values_drop_na = TRUE) 
+  
+# table of frequency counts
+t2_meds <- df_meds_long$medication %>% table() %>%
+  # sort in descending order
+  sort(decreasing = TRUE)
+
+# create data frame of medications by frequency
+df_t2_meds <- tibble(
+  Medication = names(t2_meds),
+  Frequency = t2_meds
+)
+
+# create HTML table of medications by frequency
+df_t2_meds %>% 
+  kable("html", align = c("l", "r")) %>% 
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+```
+
+
 # Table 3: Activity Engaged
 
 # Table 4: Paramedic Assessments
